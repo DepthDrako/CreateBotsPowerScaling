@@ -1,0 +1,24 @@
+# Eclipse
+.classpath
+.project
+.settings/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Gradle
+build/
+.gradle/
+
+# Minecraft
+run/
+logs/
+
+# Other
+*.log
+*.class
+.claude/

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "botzpowerscaling:item/basic_power_goggles"
+  }
+}

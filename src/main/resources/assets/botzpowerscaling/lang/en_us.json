@@ -1,0 +1,10 @@
+{
+  "key.categories.botzpowerscaling": "BotzPowerScaling",
+  "key.botzpowerscaling.scanner": "Power Scanner",
+
+  "itemGroup.botzpowerscaling.power_scaling_tab": "Power Scaling",
+
+  "item.botzpowerscaling.basic_power_goggles": "Basic Power Goggles",
+  "item.botzpowerscaling.advanced_power_goggles": "Advanced Power Goggles",
+  "item.botzpowerscaling.master_power_goggles": "Master Power Goggles"
+}
