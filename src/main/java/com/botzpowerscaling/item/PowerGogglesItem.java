@@ -91,43 +91,13 @@ public class PowerGogglesItem extends ArmorItem {
             return GogglesTier.NONE;
         }
 
-        // Check for our custom Power Goggles
+        // Check for our custom Power Goggles only
         if (helmet.getItem() instanceof PowerGogglesItem powerGoggles) {
             return powerGoggles.getTier();
         }
 
-        // Check for Create mod goggles - treat as ADVANCED tier (stats only, no effects/mob level)
-        if (isCreateGoggles(helmet)) {
-            return GogglesTier.ADVANCED;
-        }
-
+        // Create goggles and other helmets do NOT work with the scanner
         return GogglesTier.NONE;
-    }
-
-    /**
-     * Checks if the item is Create mod's goggles.
-     */
-    private static boolean isCreateGoggles(ItemStack stack) {
-        try {
-            // Check if item is an instance of Create's GogglesItem
-            return stack.getItem() instanceof com.simibubi.create.content.equipment.goggles.GogglesItem;
-        } catch (NoClassDefFoundError | Exception e) {
-            // Fallback: check by class name if Create API fails or isn't loaded
-            String className = stack.getItem().getClass().getName();
-            return className.contains("GogglesItem") && className.contains("create");
-        }
-    }
-
-    /**
-     * Alternative method to check Create goggles directly on player.
-     * This is used for backwards compatibility.
-     */
-    public static boolean isWearingCreateGoggles(Player player) {
-        try {
-            return com.simibubi.create.content.equipment.goggles.GogglesItem.isWearingGoggles(player);
-        } catch (NoClassDefFoundError | Exception e) {
-            return false;
-        }
     }
 
     /**
