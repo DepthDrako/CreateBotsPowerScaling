@@ -113,8 +113,8 @@ public class PowerScannerOverlay {
             return;
         }
 
-        // Get target stats from scanner
-        EntityStats stats = EntityScanner.getInstance().getTargetStats(mc.player);
+        // Get target stats from scanner (tier determines range)
+        EntityStats stats = EntityScanner.getInstance().getTargetStats(mc.player, tier);
 
         if (!stats.isValid()) {
             return;

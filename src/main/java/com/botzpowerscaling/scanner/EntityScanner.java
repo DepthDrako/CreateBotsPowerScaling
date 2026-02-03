@@ -1,8 +1,10 @@
 package com.botzpowerscaling.scanner;
 
 import com.botzpowerscaling.config.PowerScalingConstants;
+import com.botzpowerscaling.item.GogglesTier;
 import com.botzpowerscaling.network.NetworkHandler;
 import com.botzpowerscaling.network.RequestEntityEffectsPacket;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -63,16 +65,17 @@ public class EntityScanner {
      * Uses caching to avoid expensive recalculations every frame.
      *
      * @param player The player doing the scanning
+     * @param tier The goggles tier (determines scan range)
      * @return EntityStats for the targeted entity, or empty stats if none
      */
-    public EntityStats getTargetStats(Player player) {
-        if (player == null) {
+    public EntityStats getTargetStats(Player player, GogglesTier tier) {
+        if (player == null || tier == GogglesTier.NONE) {
             resetCache();
             return EntityStats.empty();
         }
 
-        // Perform ray trace to find target
-        LivingEntity currentTarget = findTargetEntity(player);
+        // Perform ray trace to find target using tier-specific range
+        LivingEntity currentTarget = findTargetEntity(player, tier.getScanRange());
 
         // Check if target changed
         if (currentTarget != cachedTarget) {
@@ -162,27 +165,40 @@ public class EntityScanner {
     }
 
     /**
-     * Performs a ray trace from the player's eyes to find a living entity.
+     * Performs a ray trace from the camera position to find a living entity.
+     * Uses the actual camera position and direction, which works correctly with
+     * third-person camera mods (like Shoulder Surfing, etc.).
      *
      * @param player The player to trace from
+     * @param range The maximum scan range in blocks (determined by goggles tier)
      * @return The targeted LivingEntity, or null if none found
      */
     @Nullable
-    private LivingEntity findTargetEntity(Player player) {
+    private LivingEntity findTargetEntity(Player player, double range) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) {
             return null;
         }
 
-        double range = PowerScalingConstants.SCAN_RANGE;
+        // Use the camera position and look direction instead of player position
+        // This works correctly with third-person camera mods
+        Camera camera = mc.gameRenderer.getMainCamera();
 
-        // Get player look vector
-        Vec3 eyePos = player.getEyePosition(1.0f);
-        Vec3 lookVec = player.getViewVector(1.0f);
-        Vec3 endPos = eyePos.add(lookVec.scale(range));
+        // Safety check - camera might not be ready
+        if (!camera.isInitialized()) {
+            // Fallback to player-based targeting
+            return findTargetEntityFromPlayer(player, range);
+        }
 
-        // Create bounding box for entity search
-        AABB searchBox = player.getBoundingBox().expandTowards(lookVec.scale(range)).inflate(1.0);
+        Vec3 cameraPos = camera.getPosition();
+
+        // Use camera's getLookVector which correctly handles rotation
+        Vec3 lookVec = new Vec3(camera.getLookVector());
+
+        Vec3 endPos = cameraPos.add(lookVec.scale(range));
+
+        // Create bounding box for entity search - use camera position as center
+        AABB searchBox = new AABB(cameraPos, cameraPos).expandTowards(lookVec.scale(range)).inflate(1.0);
 
         // Filter: only living entities, not self, not dead
         Predicate<Entity> filter = entity ->
@@ -192,14 +208,55 @@ public class EntityScanner {
                         && entity.isAlive()
                         && entity.isPickable();
 
-        // Perform ray trace
+        // Perform ray trace from camera position
+        EntityHitResult hitResult = ProjectileUtil.getEntityHitResult(
+                player,
+                cameraPos,
+                endPos,
+                searchBox,
+                filter,
+                range * range // squared distance
+        );
+
+        if (hitResult != null && hitResult.getEntity() instanceof LivingEntity living) {
+            return living;
+        }
+
+        return null;
+    }
+
+    /**
+     * Fallback method that traces from the player's eye position.
+     * Used when camera is not initialized.
+     *
+     * @param player The player to trace from
+     * @param range The scan range
+     * @return The targeted LivingEntity, or null if none found
+     */
+    @Nullable
+    private LivingEntity findTargetEntityFromPlayer(Player player, double range) {
+        Minecraft mc = Minecraft.getInstance();
+
+        Vec3 eyePos = player.getEyePosition(1.0f);
+        Vec3 lookVec = player.getViewVector(1.0f);
+        Vec3 endPos = eyePos.add(lookVec.scale(range));
+
+        AABB searchBox = player.getBoundingBox().expandTowards(lookVec.scale(range)).inflate(1.0);
+
+        Predicate<Entity> filter = entity ->
+                entity instanceof LivingEntity
+                        && entity != player
+                        && !entity.isSpectator()
+                        && entity.isAlive()
+                        && entity.isPickable();
+
         EntityHitResult hitResult = ProjectileUtil.getEntityHitResult(
                 player,
                 eyePos,
                 endPos,
                 searchBox,
                 filter,
-                range * range // squared distance
+                range * range
         );
 
         if (hitResult != null && hitResult.getEntity() instanceof LivingEntity living) {

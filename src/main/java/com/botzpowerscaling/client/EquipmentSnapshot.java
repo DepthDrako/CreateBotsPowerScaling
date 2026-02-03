@@ -6,15 +6,14 @@ import com.botzpowerscaling.scanner.EntityStats;
 import com.botzpowerscaling.scanner.MobVariantHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-
-import java.util.Map;
 
 /**
  * Handles taking equipment snapshots and outputting them to chat.
@@ -31,6 +30,7 @@ public class EquipmentSnapshot {
     /**
      * Takes a snapshot of the target entity's equipment and sends it to local chat only.
      * Also saves the snapshot for later sharing via /scanshare.
+     * Uses Option 5: Detailed Card Style format.
      *
      * @param entity The entity to snapshot
      * @param stats The entity's stats (for saving)
@@ -46,48 +46,121 @@ public class EquipmentSnapshot {
         // Save snapshot for later sharing
         saveSnapshot(entity, stats, entityName);
 
-        // Header with entity name
-        MutableComponent header = Component.literal("═══ ")
-                .withStyle(ChatFormatting.GOLD)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ (top border)
+        mc.player.sendSystemMessage(Component.literal("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                .withStyle(ChatFormatting.GOLD));
+
+        // SCAN: Entity Name (Lv. X)
+        MutableComponent titleLine = Component.literal("  SCAN: ")
+                .withStyle(ChatFormatting.GRAY)
                 .append(Component.literal(entityName)
-                        .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
-                .append(Component.literal(" ═══")
+                        .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
+        if (stats.hasMobLevel()) {
+            titleLine.append(Component.literal(" (Lv. " + stats.getMobLevel() + ")")
+                    .withStyle(ChatFormatting.LIGHT_PURPLE));
+        }
+        mc.player.sendSystemMessage(titleLine);
+
+        // Scanned by: PlayerName
+        mc.player.sendSystemMessage(Component.literal("  Scanned by: ")
+                .withStyle(ChatFormatting.DARK_GRAY)
+                .append(Component.literal(mc.player.getName().getString())
+                        .withStyle(ChatFormatting.WHITE)));
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ (separator)
+        mc.player.sendSystemMessage(Component.literal("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                .withStyle(ChatFormatting.DARK_GRAY));
+
+        // Power Level: X
+        mc.player.sendSystemMessage(Component.literal("  Power Level: ")
+                .withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(String.valueOf(stats.getDisplayPowerLevel()))
+                        .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)));
+
+        // Stats line: HP: X/X | ATK: X | DEF: X | ARM: X
+        MutableComponent statsLine = Component.literal("  ")
+                .append(Component.literal("HP: ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(stats.getDisplayCurrentHealth() + "/" + stats.getDisplayMaxHealth())
+                        .withStyle(ChatFormatting.RED))
+                .append(Component.literal(" | ATK: ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(String.valueOf(stats.getDisplayAttack()))
                         .withStyle(ChatFormatting.GOLD));
-        mc.player.sendSystemMessage(header);
 
-        // Main hand weapon
+        if (stats.hasDefense()) {
+            statsLine.append(Component.literal(" | DEF: ").withStyle(ChatFormatting.GRAY))
+                    .append(Component.literal(String.valueOf(stats.getDisplayDefense()))
+                            .withStyle(ChatFormatting.AQUA));
+        }
+        if (stats.hasArmor()) {
+            statsLine.append(Component.literal(" | ARM: ").withStyle(ChatFormatting.GRAY))
+                    .append(Component.literal(String.valueOf(stats.getDisplayArmor()))
+                            .withStyle(ChatFormatting.GREEN));
+        }
+        if (stats.hasMagic()) {
+            statsLine.append(Component.literal(" | MAG: ").withStyle(ChatFormatting.GRAY))
+                    .append(Component.literal(String.valueOf(stats.getDisplayMagic()))
+                            .withStyle(ChatFormatting.LIGHT_PURPLE));
+        }
+        mc.player.sendSystemMessage(statsLine);
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ (separator)
+        mc.player.sendSystemMessage(Component.literal("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                .withStyle(ChatFormatting.DARK_GRAY));
+
+        // Equipment: header
+        mc.player.sendSystemMessage(Component.literal("  Equipment:")
+                .withStyle(ChatFormatting.GRAY));
+
+        // Equipment slots with arrows
         ItemStack mainHand = entity.getItemBySlot(EquipmentSlot.MAINHAND);
-        sendEquipmentLine(mc, "Main Hand", mainHand, ChatFormatting.RED);
-
-        // Off hand
         ItemStack offHand = entity.getItemBySlot(EquipmentSlot.OFFHAND);
-        sendEquipmentLine(mc, "Off Hand", offHand, ChatFormatting.GOLD);
-
-        // Armor (head to feet)
         ItemStack head = entity.getItemBySlot(EquipmentSlot.HEAD);
-        sendEquipmentLine(mc, "Head", head, ChatFormatting.AQUA);
-
         ItemStack chest = entity.getItemBySlot(EquipmentSlot.CHEST);
-        sendEquipmentLine(mc, "Chest", chest, ChatFormatting.AQUA);
-
         ItemStack legs = entity.getItemBySlot(EquipmentSlot.LEGS);
-        sendEquipmentLine(mc, "Legs", legs, ChatFormatting.AQUA);
-
         ItemStack feet = entity.getItemBySlot(EquipmentSlot.FEET);
-        sendEquipmentLine(mc, "Feet", feet, ChatFormatting.AQUA);
 
-        // Footer with hint
-        MutableComponent footer = Component.literal("═══════════════════")
-                .withStyle(ChatFormatting.GOLD);
-        mc.player.sendSystemMessage(footer);
+        sendEquipmentArrowLine(mc, mainHand, ChatFormatting.RED);
+        sendEquipmentArrowLine(mc, offHand, ChatFormatting.GOLD);
+        sendEquipmentArrowLine(mc, head, ChatFormatting.AQUA);
+        sendEquipmentArrowLine(mc, chest, ChatFormatting.AQUA);
+        sendEquipmentArrowLine(mc, legs, ChatFormatting.AQUA);
+        sendEquipmentArrowLine(mc, feet, ChatFormatting.AQUA);
 
-        MutableComponent hint = Component.literal("  Use ")
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ (bottom border)
+        mc.player.sendSystemMessage(Component.literal("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                .withStyle(ChatFormatting.GOLD));
+
+        // Hint for sharing
+        mc.player.sendSystemMessage(Component.literal("  Use ")
                 .withStyle(ChatFormatting.DARK_GRAY)
                 .append(Component.literal("/scanshare")
                         .withStyle(ChatFormatting.YELLOW))
                 .append(Component.literal(" to share with others")
-                        .withStyle(ChatFormatting.DARK_GRAY));
-        mc.player.sendSystemMessage(hint);
+                        .withStyle(ChatFormatting.DARK_GRAY)));
+    }
+
+    /**
+     * Sends an equipment line with arrow prefix (only for non-empty items).
+     */
+    private static void sendEquipmentArrowLine(Minecraft mc, ItemStack stack, ChatFormatting color) {
+        if (mc.player == null || stack.isEmpty()) return;
+
+        MutableComponent line = Component.literal("    → ")
+                .withStyle(ChatFormatting.DARK_GRAY);
+
+        // Create hoverable item component with full tooltip
+        MutableComponent itemComponent = Component.literal("[")
+                .withStyle(ChatFormatting.DARK_GRAY)
+                .append(stack.getHoverName().copy().withStyle(color))
+                .append(Component.literal("]").withStyle(ChatFormatting.DARK_GRAY));
+
+        // Add hover event to show full item tooltip
+        HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_ITEM,
+                new HoverEvent.ItemStackInfo(stack));
+        itemComponent = itemComponent.withStyle(Style.EMPTY.withHoverEvent(hoverEvent));
+
+        line.append(itemComponent);
+        mc.player.sendSystemMessage(line);
     }
 
     /**
@@ -98,13 +171,13 @@ public class EquipmentSnapshot {
             return;
         }
 
-        // Get equipment names
-        String mainHand = getItemName(entity.getItemBySlot(EquipmentSlot.MAINHAND));
-        String offHand = getItemName(entity.getItemBySlot(EquipmentSlot.OFFHAND));
-        String head = getItemName(entity.getItemBySlot(EquipmentSlot.HEAD));
-        String chest = getItemName(entity.getItemBySlot(EquipmentSlot.CHEST));
-        String legs = getItemName(entity.getItemBySlot(EquipmentSlot.LEGS));
-        String feet = getItemName(entity.getItemBySlot(EquipmentSlot.FEET));
+        // Get equipment NBT data (for hoverable items in shared chat)
+        CompoundTag mainHandTag = serializeItem(entity.getItemBySlot(EquipmentSlot.MAINHAND));
+        CompoundTag offHandTag = serializeItem(entity.getItemBySlot(EquipmentSlot.OFFHAND));
+        CompoundTag headTag = serializeItem(entity.getItemBySlot(EquipmentSlot.HEAD));
+        CompoundTag chestTag = serializeItem(entity.getItemBySlot(EquipmentSlot.CHEST));
+        CompoundTag legsTag = serializeItem(entity.getItemBySlot(EquipmentSlot.LEGS));
+        CompoundTag feetTag = serializeItem(entity.getItemBySlot(EquipmentSlot.FEET));
 
         // Save the packet for later
         lastSnapshot = new ShareScanPacket(
@@ -117,14 +190,25 @@ public class EquipmentSnapshot {
                 stats.getDisplayArmor(),
                 stats.getDisplayMagic(),
                 stats.getMobLevel(),
-                mainHand,
-                offHand,
-                head,
-                chest,
-                legs,
-                feet
+                mainHandTag,
+                offHandTag,
+                headTag,
+                chestTag,
+                legsTag,
+                feetTag
         );
         lastSnapshotTime = System.currentTimeMillis();
+    }
+
+    /**
+     * Serializes an ItemStack to NBT for network transmission.
+     * Returns empty CompoundTag if the stack is empty.
+     */
+    private static CompoundTag serializeItem(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return new CompoundTag();
+        }
+        return stack.save(new CompoundTag());
     }
 
     /**
@@ -162,72 +246,4 @@ public class EquipmentSnapshot {
         return lastSnapshot.getEntityName();
     }
 
-    /**
-     * Gets the item name or empty string if the slot is empty.
-     */
-    private static String getItemName(ItemStack stack) {
-        if (stack.isEmpty()) {
-            return "";
-        }
-        return stack.getHoverName().getString();
-    }
-
-    /**
-     * Sends a single equipment slot line to chat.
-     */
-    private static void sendEquipmentLine(Minecraft mc, String slotName, ItemStack stack, ChatFormatting color) {
-        if (mc.player == null) return;
-
-        MutableComponent line = Component.literal(" " + slotName + ": ")
-                .withStyle(ChatFormatting.GRAY);
-
-        if (stack.isEmpty()) {
-            line.append(Component.literal("Empty")
-                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
-        } else {
-            // Item name
-            line.append(Component.literal(stack.getHoverName().getString())
-                    .withStyle(color));
-
-            // Enchantments
-            Map<Enchantment, Integer> enchants = EnchantmentHelper.getEnchantments(stack);
-            if (!enchants.isEmpty()) {
-                StringBuilder enchantStr = new StringBuilder(" [");
-                boolean first = true;
-                for (Map.Entry<Enchantment, Integer> entry : enchants.entrySet()) {
-                    if (!first) enchantStr.append(", ");
-                    first = false;
-
-                    String enchantName = getShortEnchantName(entry.getKey());
-                    int level = entry.getValue();
-                    if (level > 1) {
-                        enchantStr.append(enchantName).append(" ").append(level);
-                    } else {
-                        enchantStr.append(enchantName);
-                    }
-                }
-                enchantStr.append("]");
-
-                line.append(Component.literal(enchantStr.toString())
-                        .withStyle(ChatFormatting.LIGHT_PURPLE));
-            }
-        }
-
-        mc.player.sendSystemMessage(line);
-    }
-
-    /**
-     * Gets a shortened enchantment name for display.
-     */
-    private static String getShortEnchantName(Enchantment enchant) {
-        String fullName = enchant.getDescriptionId();
-        // Extract the last part after the last dot
-        int lastDot = fullName.lastIndexOf('.');
-        if (lastDot >= 0 && lastDot < fullName.length() - 1) {
-            String shortName = fullName.substring(lastDot + 1);
-            // Capitalize first letter
-            return shortName.substring(0, 1).toUpperCase() + shortName.substring(1);
-        }
-        return fullName;
-    }
 }

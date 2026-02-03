@@ -3,27 +3,29 @@ package com.botzpowerscaling.item;
 /**
  * Defines the three tiers of Power Goggles and what features each unlocks.
  *
- * Tier 1 (Basic): Power Level only
- * Tier 2 (Advanced): Power Level + ATK/DEF/ARM/MAG stats
- * Tier 3 (Master): Everything including potion effects, mob level, and equipment
+ * Tier 1 (Basic): Power Level only, 8 block range
+ * Tier 2 (Advanced): Power Level + ATK/DEF/ARM/MAG stats, 16 block range
+ * Tier 3 (Master): Everything including potion effects, mob level, and equipment, 32 block range
  */
 public enum GogglesTier {
 
-    NONE(0, false, false, false, false, false),
-    BASIC(1, true, false, false, false, false),       // Tier 1: Power Level only
-    ADVANCED(2, true, true, false, false, false),     // Tier 2: + Stats (ATK, DEF, ARM, MAG)
-    MASTER(3, true, true, true, true, true);          // Tier 3: + Potion effects + Mob level + Equipment
+    NONE(0, 0, false, false, false, false, false),
+    BASIC(1, 8, true, false, false, false, false),       // Tier 1: Power Level only, 8 blocks
+    ADVANCED(2, 16, true, true, false, false, false),    // Tier 2: + Stats, 16 blocks
+    MASTER(3, 32, true, true, true, true, true);         // Tier 3: + Everything, 32 blocks
 
     private final int level;
+    private final double scanRange;
     private final boolean showPowerLevel;
     private final boolean showStats;
     private final boolean showPotionEffects;
     private final boolean showMobLevel;
     private final boolean showEquipment;
 
-    GogglesTier(int level, boolean showPowerLevel, boolean showStats,
+    GogglesTier(int level, double scanRange, boolean showPowerLevel, boolean showStats,
                 boolean showPotionEffects, boolean showMobLevel, boolean showEquipment) {
         this.level = level;
+        this.scanRange = scanRange;
         this.showPowerLevel = showPowerLevel;
         this.showStats = showStats;
         this.showPotionEffects = showPotionEffects;
@@ -33,6 +35,16 @@ public enum GogglesTier {
 
     public int getLevel() {
         return level;
+    }
+
+    /**
+     * Gets the scan range for this tier in blocks.
+     * - Tier 1 (Basic): 8 blocks
+     * - Tier 2 (Advanced): 16 blocks
+     * - Tier 3 (Master): 32 blocks
+     */
+    public double getScanRange() {
+        return scanRange;
     }
 
     /**

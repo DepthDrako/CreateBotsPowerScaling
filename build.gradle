@@ -104,6 +104,10 @@ dependencies {
     // MixinExtras (required by Create 6.0.x)
     compileOnly annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1")
     implementation "io.github.llamalad7:mixinextras-forge:0.4.1"
+
+    // JEI (Just Enough Items) - dev environment only
+    compileOnly fg.deobf("mezz.jei:jei-1.20.1-forge-api:15.20.0.106")
+    runtimeOnly fg.deobf("mezz.jei:jei-1.20.1-forge:15.20.0.106")
 }
 
 tasks.named('processResources', ProcessResources).configure {
