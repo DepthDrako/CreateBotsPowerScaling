@@ -45,6 +45,15 @@ public class NetworkHandler {
                 Optional.of(NetworkDirection.PLAY_TO_SERVER)
         );
 
+        CHANNEL.registerMessage(
+                packetId++,
+                ShareScanPacket.class,
+                ShareScanPacket::encode,
+                ShareScanPacket::decode,
+                ShareScanPacket::handle,
+                Optional.of(NetworkDirection.PLAY_TO_SERVER)
+        );
+
         BotzPowerScaling.LOGGER.info("Registered network packets");
     }
 }

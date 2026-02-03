@@ -105,7 +105,8 @@ public final class StatsCalculator {
                 healthWeight, attackWeight, defenseWeight, armorWeight, magicWeight, basePower);
         double powerBonus = totalPowerLevel - basePowerLevel;
 
-        String name = entity.getName().getString();
+        // Get detailed name with variant info (e.g., "Baby Zombie", "Charged Creeper")
+        String name = MobVariantHelper.getDetailedName(entity);
 
         // Get mob level from Auto-Leveling if available
         int mobLevel = AutoLevelingIntegration.getMobLevel(entity);

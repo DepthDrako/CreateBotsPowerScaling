@@ -14,7 +14,9 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.MobEffectTextureManager;
 import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.client.gui.overlay.ForgeGui;
 import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -118,6 +120,14 @@ public class PowerScannerOverlay {
             return;
         }
 
+        // Check for double-tap snapshot (Master tier only)
+        if (tier.canShowEquipment() && KeyBindings.consumeDoubleTap()) {
+            LivingEntity target = EntityScanner.getInstance().getTarget();
+            if (target != null) {
+                EquipmentSnapshot.takeSnapshot(target, stats);
+            }
+        }
+
         // Get fade progress for animation
         float fade = EntityScanner.getInstance().getFadeProgress();
         if (fade <= 0) {
@@ -154,6 +164,11 @@ public class PowerScannerOverlay {
         // Add row for MAG if present (Tier 2+)
         if (tier.canShowStats() && stats.hasMagic()) {
             height += 12;
+        }
+
+        // Add equipment section for tier 3 (separator + weapon + armor + hint)
+        if (tier.canShowEquipment()) {
+            height += 36;
         }
 
         // Add padding for potion effects row if tier 3
@@ -267,6 +282,14 @@ public class PowerScannerOverlay {
             }
         }
 
+        // === EQUIPMENT DISPLAY - Tier 3 only ===
+        if (tier.canShowEquipment()) {
+            LivingEntity target = EntityScanner.getInstance().getTarget();
+            if (target != null) {
+                contentY = drawEquipmentSection(graphics, font, target, panelX, contentX, contentY, PANEL_WIDTH, alpha);
+            }
+        }
+
         // === POTION EFFECT ICONS - Tier 3 only ===
         if (tier.canShowPotionEffects()) {
             LivingEntity target = EntityScanner.getInstance().getTarget();
@@ -353,6 +376,60 @@ public class PowerScannerOverlay {
             iconX += EFFECT_ICON_SIZE + 2;
             iconIndex++;
         }
+    }
+
+    /**
+     * Draws the equipment section showing weapon and armor.
+     * Returns the new Y position after drawing.
+     */
+    private static int drawEquipmentSection(GuiGraphics graphics, Font font, LivingEntity entity,
+                                             int panelX, int contentX, int y, int panelWidth, int alpha) {
+        // Thin separator before equipment
+        drawSeparator(graphics, panelX + 10, y, panelWidth - 20, alpha);
+        y += 6;
+
+        // Check main hand
+        ItemStack mainHand = entity.getItemBySlot(EquipmentSlot.MAINHAND);
+        if (!mainHand.isEmpty()) {
+            String itemName = truncateString(mainHand.getHoverName().getString(), 14);
+            drawStatLine(graphics, font, "WPN", itemName, contentX, y, ATTACK_COLOR, alpha);
+            y += 10;
+        }
+
+        // Count armor pieces
+        int armorCount = 0;
+        StringBuilder armorStr = new StringBuilder();
+
+        ItemStack head = entity.getItemBySlot(EquipmentSlot.HEAD);
+        ItemStack chest = entity.getItemBySlot(EquipmentSlot.CHEST);
+        ItemStack legs = entity.getItemBySlot(EquipmentSlot.LEGS);
+        ItemStack feet = entity.getItemBySlot(EquipmentSlot.FEET);
+
+        if (!head.isEmpty()) armorCount++;
+        if (!chest.isEmpty()) armorCount++;
+        if (!legs.isEmpty()) armorCount++;
+        if (!feet.isEmpty()) armorCount++;
+
+        if (armorCount > 0) {
+            // Show armor count and hint for snapshot
+            String armorInfo = armorCount + "/4 pcs";
+            drawStatLine(graphics, font, "GER", armorInfo, contentX, y, ARMOR_COLOR, alpha);
+            y += 10;
+        }
+
+        // Hint for snapshot (double-tap)
+        drawTextWithShadow(graphics, font, "[VV] Snapshot", contentX, y, TEXT_GRAY, (int)(alpha * 0.6));
+        y += 10;
+
+        return y;
+    }
+
+    /**
+     * Truncates a string to a maximum length, adding ".." if truncated.
+     */
+    private static String truncateString(String str, int maxLen) {
+        if (str.length() <= maxLen) return str;
+        return str.substring(0, maxLen - 2) + "..";
     }
 
     /**

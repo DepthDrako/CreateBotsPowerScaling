@@ -3,30 +3,32 @@ package com.botzpowerscaling.item;
 /**
  * Defines the three tiers of Power Goggles and what features each unlocks.
  *
- * Tier 1 (Basic): Rune Level only
- * Tier 2 (Advanced): Rune Level + ATK/DEF/ARM/MAG stats
- * Tier 3 (Master): Everything including potion effects and mob level
+ * Tier 1 (Basic): Power Level only
+ * Tier 2 (Advanced): Power Level + ATK/DEF/ARM/MAG stats
+ * Tier 3 (Master): Everything including potion effects, mob level, and equipment
  */
 public enum GogglesTier {
 
-    NONE(0, false, false, false, false),
-    BASIC(1, true, false, false, false),      // Tier 1: Rune Level only
-    ADVANCED(2, true, true, false, false),    // Tier 2: + Stats (ATK, DEF, ARM, MAG)
-    MASTER(3, true, true, true, true);        // Tier 3: + Potion effects + Mob level
+    NONE(0, false, false, false, false, false),
+    BASIC(1, true, false, false, false, false),       // Tier 1: Power Level only
+    ADVANCED(2, true, true, false, false, false),     // Tier 2: + Stats (ATK, DEF, ARM, MAG)
+    MASTER(3, true, true, true, true, true);          // Tier 3: + Potion effects + Mob level + Equipment
 
     private final int level;
-    private final boolean showRuneLevel;
+    private final boolean showPowerLevel;
     private final boolean showStats;
     private final boolean showPotionEffects;
     private final boolean showMobLevel;
+    private final boolean showEquipment;
 
-    GogglesTier(int level, boolean showRuneLevel, boolean showStats,
-                boolean showPotionEffects, boolean showMobLevel) {
+    GogglesTier(int level, boolean showPowerLevel, boolean showStats,
+                boolean showPotionEffects, boolean showMobLevel, boolean showEquipment) {
         this.level = level;
-        this.showRuneLevel = showRuneLevel;
+        this.showPowerLevel = showPowerLevel;
         this.showStats = showStats;
         this.showPotionEffects = showPotionEffects;
         this.showMobLevel = showMobLevel;
+        this.showEquipment = showEquipment;
     }
 
     public int getLevel() {
@@ -34,11 +36,19 @@ public enum GogglesTier {
     }
 
     /**
-     * Whether this tier shows the Rune Level (Power Level).
+     * Whether this tier shows the Power Level.
      * Available at Tier 1+
      */
     public boolean canShowRuneLevel() {
-        return showRuneLevel;
+        return showPowerLevel;
+    }
+
+    /**
+     * Whether this tier shows equipped armor and weapons.
+     * Available at Tier 3 only
+     */
+    public boolean canShowEquipment() {
+        return showEquipment;
     }
 
     /**

@@ -70,6 +70,9 @@ public class ClientEvents {
                 return;
             }
 
+            // Update keybinding state (for double-tap detection)
+            KeyBindings.tick();
+
             // Update the scanner's internal state
             EntityScanner.getInstance().tick();
         }
